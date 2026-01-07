@@ -58,9 +58,10 @@ type GatewayFormData = z.infer<typeof gatewaySchema>
 
 interface GatewayFormProps {
   gateway?: Gateway
+  organizationId: string
 }
 
-export function GatewayForm({ gateway }: GatewayFormProps) {
+export function GatewayForm({ gateway, organizationId }: GatewayFormProps) {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const router = useRouter()
   const supabase = createClient()
@@ -113,6 +114,7 @@ export function GatewayForm({ gateway }: GatewayFormProps) {
         min_amount: data.min_amount ? parseFloat(data.min_amount) : null,
         max_amount: data.max_amount ? parseFloat(data.max_amount) : null,
         descriptor: data.descriptor || null,
+        organization_id: organizationId, // Add organization_id for multi-tenant support
       }
 
       if (isEditing) {

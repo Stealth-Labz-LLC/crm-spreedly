@@ -1,6 +1,7 @@
 import { notFound } from 'next/navigation'
 import Link from 'next/link'
 import { createServiceClient } from '@/lib/supabase/server'
+import { getOrganizationContext } from '@/lib/auth/organization-context'
 import { Button } from '@/components/ui/button'
 import { ChevronLeft } from 'lucide-react'
 import { GatewayForm } from '../../gateway-form'
@@ -12,6 +13,7 @@ interface PageProps {
 
 export default async function EditGatewayPage({ params }: PageProps) {
   const { id } = await params
+  const { organization } = await getOrganizationContext()
   const supabase = await createServiceClient()
 
   const { data } = await supabase
@@ -41,7 +43,7 @@ export default async function EditGatewayPage({ params }: PageProps) {
       </div>
 
       <div className="max-w-2xl">
-        <GatewayForm gateway={gateway} />
+        <GatewayForm gateway={gateway} organizationId={organization.id} />
       </div>
     </div>
   )

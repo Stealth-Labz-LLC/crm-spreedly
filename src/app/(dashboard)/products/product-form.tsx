@@ -64,6 +64,7 @@ type ProductFormData = z.infer<typeof productSchema>
 interface ProductFormProps {
   product?: Product
   defaultCategory?: string
+  organizationId: string
 }
 
 const FULFILLMENT_TYPES = [
@@ -92,7 +93,7 @@ function LabelWithTooltip({ label, tooltip }: { label: string; tooltip: string }
   )
 }
 
-export function ProductForm({ product, defaultCategory }: ProductFormProps) {
+export function ProductForm({ product, defaultCategory, organizationId }: ProductFormProps) {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [categories, setCategories] = useState<ProductCategory[]>([])
   const router = useRouter()
@@ -166,6 +167,7 @@ export function ProductForm({ product, defaultCategory }: ProductFormProps) {
         weight: data.weight ? parseFloat(data.weight) : null,
         qty_available: parseInt(data.qty_available || '0'),
         msrp: data.msrp ? parseFloat(data.msrp) : null,
+        organization_id: organizationId, // Add organization_id for multi-tenant support
       }
 
       if (isEditing) {

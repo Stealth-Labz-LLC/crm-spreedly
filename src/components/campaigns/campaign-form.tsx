@@ -72,9 +72,10 @@ export type CampaignFormData = z.infer<typeof campaignSchema>
 
 interface CampaignFormProps {
   campaign?: Campaign | null
+  organizationId: string
 }
 
-export function CampaignForm({ campaign }: CampaignFormProps) {
+export function CampaignForm({ campaign, organizationId }: CampaignFormProps) {
   const router = useRouter()
   const supabase = createClient()
   const [activeSection, setActiveSection] = useState<CampaignSectionId>('general')
@@ -191,6 +192,7 @@ export function CampaignForm({ campaign }: CampaignFormProps) {
         min_total_value: data.min_total_value,
         max_coupons: data.max_coupons,
         reorder_days: data.reorder_days,
+        organization_id: organizationId, // Add organization_id for multi-tenant support
       }
 
       if (isEditing && campaign) {

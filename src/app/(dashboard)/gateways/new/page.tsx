@@ -2,8 +2,10 @@ import Link from 'next/link'
 import { ChevronLeft } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { GatewayForm } from '../gateway-form'
+import { getOrganizationContext } from '@/lib/auth/organization-context'
 
-export default function NewGatewayPage() {
+export default async function NewGatewayPage() {
+  const { organization } = await getOrganizationContext()
   return (
     <div className="space-y-6">
       <div className="flex items-center gap-4">
@@ -21,7 +23,7 @@ export default function NewGatewayPage() {
       </div>
 
       <div className="max-w-2xl">
-        <GatewayForm />
+        <GatewayForm organizationId={organization.id} />
       </div>
     </div>
   )

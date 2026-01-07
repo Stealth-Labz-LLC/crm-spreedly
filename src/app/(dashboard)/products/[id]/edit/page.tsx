@@ -1,6 +1,7 @@
 import { notFound } from 'next/navigation'
 import Link from 'next/link'
 import { createServiceClient } from '@/lib/supabase/server'
+import { getOrganizationContext } from '@/lib/auth/organization-context'
 import { ChevronRight } from 'lucide-react'
 import { ProductForm } from '../../product-form'
 import type { Product } from '@/types/database'
@@ -11,6 +12,7 @@ interface PageProps {
 
 export default async function EditProductPage({ params }: PageProps) {
   const { id } = await params
+  const { organization } = await getOrganizationContext()
   const supabase = await createServiceClient()
 
   const { data } = await supabase
@@ -47,7 +49,7 @@ export default async function EditProductPage({ params }: PageProps) {
       </div>
 
       {/* Form - Full width */}
-      <ProductForm product={product} />
+      <ProductForm product={product} organizationId={organization.id} />
     </div>
   )
 }

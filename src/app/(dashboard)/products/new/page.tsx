@@ -1,6 +1,7 @@
 import Link from 'next/link'
 import { ChevronRight } from 'lucide-react'
 import { ProductForm } from '../product-form'
+import { getOrganizationContext } from '@/lib/auth/organization-context'
 
 interface PageProps {
   searchParams: Promise<{ category?: string }>
@@ -9,6 +10,7 @@ interface PageProps {
 export default async function NewProductPage({ searchParams }: PageProps) {
   const params = await searchParams
   const defaultCategory = params.category || ''
+  const { organization } = await getOrganizationContext()
 
   return (
     <div className="space-y-6">
@@ -31,7 +33,7 @@ export default async function NewProductPage({ searchParams }: PageProps) {
       </div>
 
       {/* Form - Full width */}
-      <ProductForm defaultCategory={defaultCategory} />
+      <ProductForm defaultCategory={defaultCategory} organizationId={organization.id} />
     </div>
   )
 }
