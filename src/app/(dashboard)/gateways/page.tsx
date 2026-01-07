@@ -1,5 +1,6 @@
 import Link from 'next/link'
 import { createServiceClient } from '@/lib/supabase/server'
+import { getOrganizationContext } from '@/lib/auth/organization-context'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -24,11 +25,13 @@ export default async function GatewaysPage({ searchParams }: PageProps) {
   const params = await searchParams
   const search = params.search || ''
 
+  const { organization } = await getOrganizationContext()
   const supabase = await createServiceClient()
 
   let query = supabase
     .from('gateways')
     .select('*')
+    .eq('organization_id', organization.id)
     .order('priority', { ascending: false })
 
   if (search) {

@@ -18,50 +18,59 @@
 ### Required Accounts
 - [ ] Spreedly account (test environment)
 - [ ] Payment gateway accounts (Stripe, NMI, etc.)
-- [ ] Database server (MySQL/PostgreSQL)
-- [ ] Redis server
-- [ ] Email service provider
+- [ ] Supabase account (database & authentication)
+- [ ] Email service provider (optional)
+- [ ] Vercel account (for deployment)
 
 ### Development Environment
-- [ ] Laravel 11 installed
-- [ ] Node.js and npm
-- [ ] Docker (optional but recommended)
+- [ ] Node.js 18+ and npm
+- [ ] Next.js 16+ installed
+- [ ] TypeScript
 - [ ] Git repository initialized
+- [ ] Docker (optional but recommended)
 
 ---
 
 ## Initial Setup
 
-### Step 1: Configure Spreedly Credentials
+### Step 1: Configure Environment Variables
 
-Add to your `.env` file:
+Add to your `.env.local` file:
 ```env
+# Supabase
+NEXT_PUBLIC_SUPABASE_URL=your_supabase_url
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
+SUPABASE_SERVICE_ROLE_KEY=your_service_role_key
+
+# Spreedly
 SPREEDLY_ENVIRONMENT_KEY=your_environment_key
 SPREEDLY_ACCESS_SECRET=your_access_secret
-SPREEDLY_API_URL=https://core.spreedly.com/v1
+SPREEDLY_SIGNING_SECRET=your_signing_secret
+
+# Demo Mode (optional)
+DEMO_MODE=true
 ```
 
 ### Step 2: Install Required Packages
 
 ```bash
-composer require guzzlehttp/guzzle
-composer require laravel/sanctum
-composer require spatie/laravel-webhook-client
-npm install --save-dev @types/node
+npm install @supabase/supabase-js @supabase/ssr
+npm install zod react-hook-form @hookform/resolvers
+npm install @tanstack/react-query
+npm install axios
+npm install date-fns
 ```
 
 ### Step 3: Create Base Configuration
 
-Create `config/spreedly.php`:
-```php
-<?php
-
-return [
-    'environment_key' => env('SPREEDLY_ENVIRONMENT_KEY'),
-    'access_secret' => env('SPREEDLY_ACCESS_SECRET'),
-    'api_url' => env('SPREEDLY_API_URL', 'https://core.spreedly.com/v1'),
-    'webhook_secret' => env('SPREEDLY_WEBHOOK_SECRET'),
-];
+Create `lib/config/spreedly.ts`:
+```typescript
+export const spreedlyConfig = {
+  environmentKey: process.env.SPREEDLY_ENVIRONMENT_KEY!,
+  accessSecret: process.env.SPREEDLY_ACCESS_SECRET!,
+  apiUrl: 'https://core.spreedly.com/v1',
+  signingSecret: process.env.SPREEDLY_SIGNING_SECRET!,
+} as const;
 ```
 
 ---
@@ -107,29 +116,33 @@ return [
 ### Prompt 1: Initial Project Setup
 
 ```
-Create a new Laravel 11 project for a CRM system with payment processing.
+Set up a Next.js 16+ project structure for a CRM system with payment processing.
 
 Project name: custom-crm
 
 Requirements:
-- Laravel 11 with API routes
-- MySQL database
-- Redis for queues and caching
-- Laravel Sanctum for API authentication
+- Next.js 16+ with App Router
+- TypeScript
+- Supabase for database and authentication
+- TanStack React Query for data fetching
+- React Hook Form + Zod for forms
 
-Directory structure should follow domain-driven design:
-- app/Domain/Customer
-- app/Domain/Payment
-- app/Domain/Order
-- app/Domain/Subscription
-- app/Domain/Campaign
+Directory structure should follow feature-based organization:
+- app/ (Next.js App Router pages and API routes)
+- lib/supabase/ (Supabase client utilities)
+- lib/services/ (business logic services)
+- lib/types/ (TypeScript types and interfaces)
+- lib/utils/ (shared utilities)
+- components/ (React components)
+- hooks/ (custom React hooks)
 
 Create the initial project structure with:
-1. Base service provider for each domain
-2. Common traits (HasUuid, Auditable)
-3. Base API response formatting
-4. Exception handling for API responses
-5. Configuration files for Spreedly credentials
+1. Supabase client setup (browser and server)
+2. Base service classes for API communication
+3. Common types and interfaces
+4. API response formatting utilities
+5. Error handling middleware for API routes
+6. Configuration for Spreedly integration
 
 Do not generate actual code yet - first outline the complete
 directory structure and confirm the approach.
@@ -143,25 +156,26 @@ directory structure and confirm the approach.
 Create a Spreedly API service wrapper for the CRM.
 
 Requirements:
-1. Service class: app/Services/SpreedlyService.php
-2. HTTP client using Guzzle
+1. Service class: lib/services/spreedly.ts
+2. HTTP client using axios
 3. Base64 authentication with environment key + secret
-4. Methods for:
-   - tokenizePaymentMethod(cardData)
-   - retainPaymentMethod(token)
-   - redactPaymentMethod(token)
-   - createGateway(type, credentials)
-   - authorizeTransaction(gatewayToken, paymentMethodToken, amount)
-   - purchaseTransaction(gatewayToken, paymentMethodToken, amount)
-   - captureTransaction(transactionToken, amount)
-   - refundTransaction(transactionToken, amount)
-   - voidTransaction(transactionToken)
+4. TypeScript class with methods for:
+   - tokenizePaymentMethod(cardData: CardData): Promise<PaymentMethodToken>
+   - retainPaymentMethod(token: string): Promise<void>
+   - redactPaymentMethod(token: string): Promise<void>
+   - createGateway(type: string, credentials: GatewayCredentials): Promise<Gateway>
+   - authorizeTransaction(params: AuthorizeParams): Promise<Transaction>
+   - purchaseTransaction(params: PurchaseParams): Promise<Transaction>
+   - captureTransaction(transactionToken: string, amount?: number): Promise<Transaction>
+   - refundTransaction(transactionToken: string, amount?: number): Promise<Transaction>
+   - voidTransaction(transactionToken: string): Promise<Transaction>
 
-5. Error handling with custom exceptions
-6. Request/response logging
-7. Retry logic with exponential backoff
+5. Error handling with custom TypeScript error classes
+6. Request/response logging to Supabase logs table
+7. Retry logic with exponential backoff using axios-retry
 
-Include comprehensive PHPDoc comments and type hints.
+Include comprehensive JSDoc comments and full TypeScript types.
+Create corresponding TypeScript interfaces for all request/response objects.
 ```
 
 ---
@@ -172,22 +186,22 @@ Include comprehensive PHPDoc comments and type hints.
 Build the Customer domain module for the CRM.
 
 Context: This is part of a Konnektive-style CRM using Spreedly
-for payment processing.
+for payment processing, built with Next.js and Supabase.
 
 Module scope:
-1. Customer entity with profile data (name, email, phone)
-2. CustomerAddress entity (billing/shipping, multiple per customer)
-3. CustomerPaymentMethod entity storing Spreedly payment tokens
-4. CustomerNote for internal annotations
+1. Customer table in Supabase with profile data (name, email, phone)
+2. CustomerAddress table (billing/shipping, multiple per customer)
+3. CustomerPaymentMethod table storing Spreedly payment tokens
+4. CustomerNote table for internal annotations
 
 Required components:
-- Migrations for all tables
-- Eloquent models with relationships
-- Form request validators
-- Service class (CustomerService) with business logic
-- API resource transformers
-- RESTful controller with CRUD operations
-- Policy for authorization
+- Supabase migrations for all tables with RLS policies
+- TypeScript types/interfaces for all entities
+- Zod schemas for form validation
+- Service class (lib/services/customer.ts) with business logic
+- React components for customer UI
+- Next.js API routes for CRUD operations (app/api/customers/route.ts)
+- Custom React hooks for data fetching
 
 Spreedly integration requirements:
 - When adding payment method, call Spreedly to tokenize
@@ -196,14 +210,14 @@ Spreedly integration requirements:
 - Support setting default payment method
 - Support soft-deleting (redacting) payment methods via Spreedly
 
-API endpoints needed:
+API endpoints needed (Next.js API routes):
 - GET/POST /api/customers
-- GET/PUT/DELETE /api/customers/{id}
-- GET/POST /api/customers/{id}/addresses
-- GET/POST /api/customers/{id}/payment-methods
-- DELETE /api/customers/{id}/payment-methods/{pm_id}
+- GET/PUT/DELETE /api/customers/[id]
+- GET/POST /api/customers/[id]/addresses
+- GET/POST /api/customers/[id]/payment-methods
+- DELETE /api/customers/[id]/payment-methods/[pmId]
 
-Include database seeders with test data.
+Include Supabase seed data with test customers.
 ```
 
 ---
@@ -215,20 +229,21 @@ Build the Gateway Management module for multi-processor payment routing.
 
 Context: This CRM uses Spreedly as payment orchestration layer,
 connecting to multiple payment gateways (Stripe, NMI, Authorize.net, etc.)
+Built with Next.js, TypeScript, and Supabase.
 
 Module scope:
-1. Gateway entity - stores Spreedly gateway tokens and configuration
-2. GatewayRule entity - routing rules and conditions
-3. GatewayMetric entity - tracks volume, approval rates
+1. Gateway table - stores Spreedly gateway tokens and configuration
+2. GatewayRule table - routing rules and conditions
+3. GatewayMetric table - tracks volume, approval rates
 
-Gateway configuration fields:
-- name, spreedly_gateway_token, gateway_type
-- is_active, priority (for routing order)
-- monthly_cap, current_month_volume
-- accepted_currencies (JSON array)
-- accepted_card_types (JSON array)
-- min_amount, max_amount
-- descriptor (statement descriptor)
+Gateway table fields (Supabase):
+- id (uuid), name, spreedly_gateway_token, gateway_type
+- is_active (boolean), priority (integer)
+- monthly_cap (numeric), current_month_volume (numeric)
+- accepted_currencies (jsonb array)
+- accepted_card_types (jsonb array)
+- min_amount (numeric), max_amount (numeric)
+- descriptor (text)
 
 Routing logic requirements:
 - Select gateway based on: currency, card type, amount, volume cap
@@ -236,14 +251,15 @@ Routing logic requirements:
 - Support cascade routing (try next gateway on decline)
 - Track metrics per gateway (volume, approval rate)
 
-Service class methods needed:
+Service class methods needed (lib/services/gateway.ts):
 - createGateway(type, credentials) - calls Spreedly POST /gateways
 - selectGateway(order) - returns best gateway based on rules
 - cascadeGateways(order) - returns ordered list for retry
 - updateMetrics(gateway, transaction) - track performance
 - checkVolumeCaps() - alert when approaching limits
 
-Build admin API endpoints for gateway CRUD and metrics viewing.
+Build Next.js API routes for gateway CRUD and metrics viewing.
+Include TypeScript types and Zod validation schemas.
 ```
 
 ---
@@ -255,20 +271,23 @@ Build the Transaction Processing engine for the CRM.
 
 Context: This module handles all payment operations through Spreedly,
 supporting authorize, capture, purchase, refund, and void operations.
+Built with Next.js, TypeScript, and Supabase.
 
 Module scope:
-1. Transaction entity - records all payment attempts
-2. TransactionLog entity - detailed request/response logging
-3. PaymentService - orchestrates payment operations
+1. Transaction table - records all payment attempts
+2. TransactionLog table - detailed request/response logging
+3. PaymentService (lib/services/payment.ts) - orchestrates payment operations
 
-Transaction entity fields:
-- order_id, customer_id, gateway_id
-- spreedly_transaction_token
-- type (authorize/capture/purchase/refund/void)
-- status (pending/succeeded/declined/error)
-- amount, currency
-- response_code, response_message, avs_result, cvv_result
-- metadata (JSON for additional data)
+Transaction table fields (Supabase):
+- id (uuid), order_id (uuid), customer_id (uuid), gateway_id (uuid)
+- spreedly_transaction_token (text)
+- type (enum: authorize/capture/purchase/refund/void)
+- status (enum: pending/succeeded/declined/error)
+- amount (numeric), currency (text)
+- response_code (text), response_message (text)
+- avs_result (text), cvv_result (text)
+- metadata (jsonb)
+- created_at, updated_at
 
 Spreedly API integration:
 - POST /gateways/{token}/authorize - auth only
@@ -277,22 +296,23 @@ Spreedly API integration:
 - POST /transactions/{token}/credit - refund
 - POST /transactions/{token}/void - cancel auth
 
-PaymentService methods:
-- authorize(order, paymentMethod, gateway)
-- capture(transaction, amount = null) - full or partial
-- purchase(order, paymentMethod, gateway)
-- refund(transaction, amount = null) - full or partial
-- void(transaction)
+PaymentService methods (TypeScript):
+- authorize(order, paymentMethod, gateway): Promise<Transaction>
+- capture(transaction, amount?): Promise<Transaction>
+- purchase(order, paymentMethod, gateway): Promise<Transaction>
+- refund(transaction, amount?): Promise<Transaction>
+- void(transaction): Promise<Transaction>
 
 Requirements:
-- All Spreedly requests/responses must be logged
-- Handle Spreedly error responses gracefully
-- Map Spreedly response codes to internal status
+- All Spreedly requests/responses must be logged to Supabase
+- Handle Spreedly error responses gracefully with try/catch
+- Map Spreedly response codes to internal status enum
 - Support idempotency keys to prevent duplicates
-- Emit events for transaction state changes
+- Use Supabase Realtime for transaction status updates
 
 Build internal service only - no public API endpoints for direct
 transaction creation (transactions created through Order module).
+Include full TypeScript types and interfaces.
 ```
 
 ---
@@ -304,33 +324,34 @@ Build the Subscription Billing engine for recurring payments.
 
 Context: Handles subscription lifecycle, recurring billing, and
 integrates with Dunning module for failed payment recovery.
+Built with Next.js, TypeScript, and Supabase.
 
 Module scope:
-1. Subscription entity - subscription records
-2. SubscriptionPeriod - billing periods
-3. SubscriptionInvoice - charges per period
-4. SubscriptionEvent - lifecycle event log
+1. Subscription table - subscription records
+2. SubscriptionPeriod table - billing periods
+3. SubscriptionInvoice table - charges per period
+4. SubscriptionEvent table - lifecycle event log
 
-Subscription entity fields:
-- customer_id, product_id, payment_method_id
-- status (trialing/active/past_due/paused/cancelled)
-- billing_interval (day/week/month/year)
-- billing_interval_count (e.g., 2 for bi-monthly)
-- amount, currency
-- trial_ends_at, current_period_start, current_period_end
-- next_billing_date
-- cancelled_at, cancel_reason
+Subscription table fields (Supabase):
+- id (uuid), customer_id (uuid), product_id (uuid), payment_method_id (uuid)
+- status (enum: trialing/active/past_due/paused/cancelled)
+- billing_interval (enum: day/week/month/year)
+- billing_interval_count (integer)
+- amount (numeric), currency (text)
+- trial_ends_at, current_period_start, current_period_end (timestamp)
+- next_billing_date (date)
+- cancelled_at (timestamp), cancel_reason (text)
 
-SubscriptionService methods:
-- create(customer, product, paymentMethod, options)
-- activate(subscription) - end trial, start billing
-- pause(subscription, resumeDate = null)
-- resume(subscription)
-- cancel(subscription, immediately = false, reason)
-- changePlan(subscription, newProduct, prorate = true)
-- changePaymentMethod(subscription, newPaymentMethod)
+SubscriptionService methods (lib/services/subscription.ts):
+- create(customer, product, paymentMethod, options): Promise<Subscription>
+- activate(subscription): Promise<Subscription>
+- pause(subscription, resumeDate?): Promise<Subscription>
+- resume(subscription): Promise<Subscription>
+- cancel(subscription, immediately?, reason?): Promise<Subscription>
+- changePlan(subscription, newProduct, prorate?): Promise<Subscription>
+- changePaymentMethod(subscription, newPaymentMethod): Promise<Subscription>
 
-Billing job (scheduled):
+Billing job (Vercel Cron or Supabase Edge Function):
 - Query subscriptions where next_billing_date <= today
 - For each: create invoice, attempt charge
 - On success: advance billing period, log event
@@ -341,8 +362,9 @@ Spreedly stored credentials:
 - Recurring: stored_credential_initiator: merchant,
              stored_credential_usage: used
 
-Build scheduled command for daily billing runs.
-Build API for subscription management.
+Build Next.js API route for cron job: /api/cron/billing
+Build API routes for subscription management.
+Include TypeScript types and Zod schemas.
 ```
 
 ---
@@ -354,18 +376,20 @@ Build the Webhook handling system for Spreedly events.
 
 Context: Receives and processes webhook events from Spreedly
 to keep transaction and payment method states synchronized.
+Built with Next.js, TypeScript, and Supabase.
 
 Module scope:
-1. WebhookEvent entity - log all incoming webhooks
-2. WebhookProcessor - routes events to handlers
-3. Event-specific handlers
+1. WebhookEvent table - log all incoming webhooks
+2. WebhookProcessor service - routes events to handlers
+3. Event-specific handler functions
 
-WebhookEvent fields:
-- source (spreedly)
-- event_type
-- payload (JSON)
-- status (received/processing/processed/failed)
-- processed_at
+WebhookEvent table fields (Supabase):
+- id (uuid), source (text, default: 'spreedly')
+- event_type (text)
+- payload (jsonb)
+- status (enum: received/processing/processed/failed)
+- processed_at (timestamp)
+- created_at (timestamp)
 
 Spreedly events to handle:
 - transaction.succeeded
@@ -376,22 +400,23 @@ Spreedly events to handle:
 - gateway.redacted
 
 Handler actions:
-- transaction.succeeded: Update transaction status,
+- transaction.succeeded: Update transaction status in Supabase,
   trigger order/subscription success flows
 - transaction.failed: Update status, trigger dunning if subscription
 - payment_method.updated: Sync card details (exp date, etc.)
 
 Security requirements:
-- Verify webhook signatures (Spreedly signing secret)
-- Idempotency - don't process same event twice
-- Queue processing for reliability
-- Retry failed handlers
+- Verify webhook signatures using Spreedly signing secret
+- Idempotency - check for duplicate event_id before processing
+- Use Supabase Edge Functions or Next.js API routes
+- Store failed webhooks for manual review
 
 Build:
-- POST /api/webhooks/spreedly endpoint
-- Signature verification middleware
-- Event dispatcher to appropriate handlers
-- Failed webhook retry mechanism
+- Next.js API route: app/api/webhooks/spreedly/route.ts
+- Signature verification function
+- Event dispatcher with TypeScript pattern matching
+- Webhook event handlers (lib/webhooks/handlers/)
+- Include full TypeScript types and error handling
 ```
 
 ---
@@ -400,28 +425,39 @@ Build:
 
 ### Unit Tests
 ```bash
-# Test individual services
-php artisan test --filter=SpreedlyServiceTest
-php artisan test --filter=CustomerServiceTest
-php artisan test --filter=PaymentServiceTest
+# Test individual services using Jest or Vitest
+npm test services/spreedly.test.ts
+npm test services/customer.test.ts
+npm test services/payment.test.ts
 ```
 
 ### Integration Tests
 ```bash
 # Test Spreedly API integration
-php artisan test --filter=SpreedlyIntegrationTest
+npm test integration/spreedly.test.ts
 
 # Use test credentials and test gateway
 # Spreedly test cards: 4111111111111111 (success)
+# Use Supabase local development or test project
 ```
 
 ### E2E Tests
 ```bash
-# Test complete order flow
-php artisan test --filter=OrderProcessingTest
+# Test complete order flow using Playwright or Cypress
+npm run test:e2e -- order-processing.spec.ts
 
 # Test subscription billing
-php artisan test --filter=SubscriptionBillingTest
+npm run test:e2e -- subscription-billing.spec.ts
+
+# Run all tests
+npm test
+```
+
+### API Route Tests
+```bash
+# Test Next.js API routes
+npm test api/customers.test.ts
+npm test api/webhooks/spreedly.test.ts
 ```
 
 ---
@@ -429,25 +465,27 @@ php artisan test --filter=SubscriptionBillingTest
 ## Deployment Checklist
 
 ### Pre-Deployment
-- [ ] All tests passing
-- [ ] Environment variables configured
-- [ ] Database migrations ready
-- [ ] Queue workers configured
+- [ ] All tests passing (npm test)
+- [ ] Environment variables configured in Vercel
+- [ ] Supabase migrations deployed to production
+- [ ] Build successful (npm run build)
 - [ ] Webhook endpoints secured with SSL
+- [ ] Type checking passes (npm run type-check)
 
 ### Production Setup
-- [ ] Switch Spreedly to production credentials
-- [ ] Configure production gateways
-- [ ] Set up monitoring and alerting
-- [ ] Configure backup strategy
-- [ ] Enable audit logging
+- [ ] Switch Spreedly to production credentials in Vercel
+- [ ] Configure production gateways in Spreedly dashboard
+- [ ] Set up Vercel Analytics and monitoring
+- [ ] Configure Supabase database backups
+- [ ] Enable Supabase audit logging
+- [ ] Set up cron jobs in Vercel for subscription billing
 
 ### Post-Deployment
-- [ ] Verify webhook delivery
-- [ ] Test transaction processing
-- [ ] Monitor error rates
-- [ ] Check queue processing
-- [ ] Verify email notifications
+- [ ] Verify webhook delivery to /api/webhooks/spreedly
+- [ ] Test transaction processing with real payment
+- [ ] Monitor error rates in Vercel logs
+- [ ] Check Supabase Edge Function execution
+- [ ] Verify email notifications (if configured)
 
 ---
 
@@ -463,7 +501,7 @@ php artisan test --filter=SubscriptionBillingTest
 **Solution:** Verify card data format, check Spreedly error messages, ensure PCI compliance
 
 ### Issue: Subscription billing not running
-**Solution:** Check scheduled tasks, verify queue workers are running, check for failed jobs
+**Solution:** Check Vercel cron configuration, verify API route is accessible, check Supabase logs for errors
 
 ---
 
@@ -475,11 +513,12 @@ php artisan test --filter=SubscriptionBillingTest
 - Gateways: https://docs.spreedly.com/reference/api/v1/#gateways
 - Webhooks: https://docs.spreedly.com/guides/webhooks/
 
-### Laravel Resources
-- Laravel Queue Documentation
-- Laravel Sanctum for API auth
-- Laravel Horizon for queue monitoring
-- Laravel Telescope for debugging
+### Next.js & Supabase Resources
+- Next.js App Router Documentation: https://nextjs.org/docs/app
+- Supabase JavaScript Client: https://supabase.com/docs/reference/javascript
+- Supabase Auth: https://supabase.com/docs/guides/auth
+- Vercel Cron Jobs: https://vercel.com/docs/cron-jobs
+- TanStack React Query: https://tanstack.com/query/latest/docs/react/overview
 
 ---
 

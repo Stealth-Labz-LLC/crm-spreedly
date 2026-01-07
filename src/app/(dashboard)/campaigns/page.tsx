@@ -1,4 +1,5 @@
 import { createServiceClient } from '@/lib/supabase/server'
+import { getOrganizationContext } from '@/lib/auth/organization-context'
 import type { Campaign } from '@/types/database'
 import { CampaignsClient } from './campaigns-client'
 
@@ -13,12 +14,14 @@ interface PageProps {
 
 export default async function CampaignsPage({ searchParams }: PageProps) {
   const params = await searchParams
+  const { organization } = await getOrganizationContext()
   const supabase = await createServiceClient()
 
   // Build query with filters
   let query = supabase
     .from('campaigns')
     .select('*')
+    .eq('organization_id', organization.id)
     .order('created_at', { ascending: false })
 
   if (params.search) {

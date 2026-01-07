@@ -10,7 +10,7 @@ interface RouteParams {
  * GET /api/v1/customers/:id
  * Get a specific customer by ID or email
  */
-export const GET = withApiAuth(async (request: NextRequest, apiKeyId: string) => {
+export const GET = withApiAuth(async (request: NextRequest, apiKeyId: string, organizationId: string) => {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const supabase = await createClient() as any
   const url = new URL(request.url)
@@ -34,6 +34,7 @@ export const GET = withApiAuth(async (request: NextRequest, apiKeyId: string) =>
       converted_at, first_order_id, lifetime_value, total_orders,
       custom_fields, created_at, updated_at
     `)
+    .eq('organization_id', organizationId)
 
   // Check if id looks like UUID or email
   const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id)

@@ -1,4 +1,5 @@
 import { createServiceClient } from '@/lib/supabase/server'
+import { getOrganizationContext } from '@/lib/auth/organization-context'
 import type { Product, ProductCategory } from '@/types/database'
 import { ProductsClient } from './products-client'
 
@@ -15,12 +16,14 @@ interface PageProps {
 
 export default async function ProductsPage({ searchParams }: PageProps) {
   const params = await searchParams
+  const { organization } = await getOrganizationContext()
   const supabase = await createServiceClient()
 
   // Build query with filters
   let query = supabase
     .from('products')
     .select('*')
+    .eq('organization_id', organization.id)
     .order('category', { ascending: true })
     .order('name', { ascending: true })
 
@@ -46,10 +49,11 @@ export default async function ProductsPage({ searchParams }: PageProps) {
   const { data: productsData } = await query
   const products = (productsData || []) as Product[]
 
-  // Fetch categories
+  // Fetch categories for this organization
   const { data: categoriesData } = await supabase
     .from('product_categories')
     .select('*')
+    .eq('organization_id', organization.id)
     .order('sort_order')
 
   const categories = (categoriesData || []) as ProductCategory[]

@@ -1,9 +1,10 @@
 import { createServiceClient } from '@/lib/supabase/server'
+import { getOrganizationContext } from '@/lib/auth/organization-context'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Users, Package, ShoppingCart, CreditCard, TrendingUp, DollarSign } from 'lucide-react'
 import type { Order, Transaction } from '@/types/database'
 
-async function getDashboardStats() {
+async function getDashboardStats(organizationId: string) {
   const supabase = await createServiceClient()
 
   const [
@@ -14,11 +15,11 @@ async function getDashboardStats() {
     { data: recentOrdersData },
     { data: transactionsData },
   ] = await Promise.all([
-    supabase.from('customers').select('*', { count: 'exact', head: true }),
-    supabase.from('products').select('*', { count: 'exact', head: true }),
-    supabase.from('orders').select('*', { count: 'exact', head: true }),
-    supabase.from('gateways').select('*', { count: 'exact', head: true }),
-    supabase.from('orders').select('*').order('created_at', { ascending: false }).limit(5),
+    supabase.from('customers').select('*', { count: 'exact', head: true }).eq('organization_id', organizationId),
+    supabase.from('products').select('*', { count: 'exact', head: true }).eq('organization_id', organizationId),
+    supabase.from('orders').select('*', { count: 'exact', head: true }).eq('organization_id', organizationId),
+    supabase.from('gateways').select('*', { count: 'exact', head: true }).eq('organization_id', organizationId),
+    supabase.from('orders').select('*').eq('organization_id', organizationId).order('created_at', { ascending: false }).limit(5),
     supabase.from('transactions').select('amount, status').eq('status', 'succeeded'),
   ])
 
@@ -37,7 +38,8 @@ async function getDashboardStats() {
 }
 
 export default async function DashboardPage() {
-  const stats = await getDashboardStats()
+  const { organization } = await getOrganizationContext()
+  const stats = await getDashboardStats(organization.id)
 
   const statCards = [
     {

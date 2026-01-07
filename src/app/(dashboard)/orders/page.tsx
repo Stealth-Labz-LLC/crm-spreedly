@@ -1,5 +1,6 @@
 import Link from 'next/link'
 import { createServiceClient } from '@/lib/supabase/server'
+import { getOrganizationContext } from '@/lib/auth/organization-context'
 import { Card, CardContent, CardHeader } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -44,6 +45,7 @@ export default async function OrdersPage({ searchParams }: PageProps) {
   const page = parseInt(params.page || '1')
   const pageSize = 10
 
+  const { organization } = await getOrganizationContext()
   const supabase = await createServiceClient()
 
   let query = supabase
@@ -57,6 +59,7 @@ export default async function OrdersPage({ searchParams }: PageProps) {
         last_name
       )
     `, { count: 'exact' })
+    .eq('organization_id', organization.id)
     .order('created_at', { ascending: false })
     .range((page - 1) * pageSize, page * pageSize - 1)
 

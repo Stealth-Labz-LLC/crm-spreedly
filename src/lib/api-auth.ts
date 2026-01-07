@@ -4,6 +4,7 @@ import { NextRequest, NextResponse } from 'next/server'
 export interface ApiAuthResult {
   success: boolean
   apiKeyId?: string
+  organizationId?: string
   error?: string
   statusCode?: number
 }
@@ -37,10 +38,10 @@ export async function validateApiKey(request: NextRequest): Promise<ApiAuthResul
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const supabase = await createClient() as any
 
-  // Look up API key
+  // Look up API key and organization
   const { data: apiSettings, error } = await supabase
     .from('api_settings')
-    .select('id, is_active, rate_limit_per_minute, rate_limit_per_day, allowed_origins')
+    .select('id, organization_id, is_active, rate_limit_per_minute, rate_limit_per_day, allowed_origins')
     .eq('api_key', apiKey)
     .single()
 
@@ -56,6 +57,14 @@ export async function validateApiKey(request: NextRequest): Promise<ApiAuthResul
     return {
       success: false,
       error: 'API key is inactive',
+      statusCode: 403
+    }
+  }
+
+  if (!apiSettings.organization_id) {
+    return {
+      success: false,
+      error: 'API key is not associated with an organization',
       statusCode: 403
     }
   }
@@ -85,7 +94,8 @@ export async function validateApiKey(request: NextRequest): Promise<ApiAuthResul
 
   return {
     success: true,
-    apiKeyId: apiSettings.id
+    apiKeyId: apiSettings.id,
+    organizationId: apiSettings.organization_id
   }
 }
 
@@ -143,7 +153,7 @@ export function apiSuccess<T>(data: T, statusCode: number = 200): NextResponse {
  * Wrapper for API routes that require authentication
  */
 export function withApiAuth(
-  handler: (request: NextRequest, apiKeyId: string) => Promise<NextResponse>
+  handler: (request: NextRequest, apiKeyId: string, organizationId: string) => Promise<NextResponse>
 ) {
   return async (request: NextRequest): Promise<NextResponse> => {
     const startTime = Date.now()
@@ -168,7 +178,7 @@ export function withApiAuth(
     }
 
     try {
-      const response = await handler(request, auth.apiKeyId!)
+      const response = await handler(request, auth.apiKeyId!, auth.organizationId!)
 
       // Log successful request
       const responseBody = await response.clone().json().catch(() => null)

@@ -4,6 +4,7 @@ import { usePathname, useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { User } from '@supabase/supabase-js'
 import { createClient } from '@/lib/supabase/client'
+import { Organization, OrganizationRole } from '@/lib/auth/organization-context'
 import {
   LayoutDashboard,
   Users,
@@ -15,6 +16,7 @@ import {
   Settings,
   ChevronUp,
   Megaphone,
+  Building2,
 } from 'lucide-react'
 import {
   Sidebar,
@@ -88,9 +90,11 @@ const settingsNavItems = [
 
 interface AppSidebarProps {
   user: User
+  organization: Organization
+  role: OrganizationRole
 }
 
-export function AppSidebar({ user }: AppSidebarProps) {
+export function AppSidebar({ user, organization, role }: AppSidebarProps) {
   const pathname = usePathname()
   const router = useRouter()
   const supabase = createClient()
@@ -101,18 +105,50 @@ export function AppSidebar({ user }: AppSidebarProps) {
     router.refresh()
   }
 
+  const handleSwitchOrganization = () => {
+    router.push('/select-organization')
+  }
+
   const userInitials = user.email
     ? user.email.substring(0, 2).toUpperCase()
     : 'U'
 
+  const orgInitial = organization.name.charAt(0).toUpperCase()
+
+  const getRoleBadgeColor = () => {
+    switch (role) {
+      case 'owner':
+        return 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200'
+      case 'admin':
+        return 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200'
+      default:
+        return 'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-200'
+    }
+  }
+
   return (
     <Sidebar>
       <SidebarHeader className="border-b">
-        <div className="flex items-center gap-2 px-4 py-2">
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-primary-foreground font-bold">
-            C
+        <div className="flex flex-col gap-2 px-4 py-3">
+          <div className="flex items-center gap-2">
+            {organization.logo_url ? (
+              <img
+                src={organization.logo_url}
+                alt={organization.name}
+                className="h-8 w-8 rounded-lg object-cover"
+              />
+            ) : (
+              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-primary-foreground font-bold">
+                {orgInitial}
+              </div>
+            )}
+            <span className="font-semibold text-lg truncate flex-1">{organization.name}</span>
           </div>
-          <span className="font-semibold text-lg">CRM</span>
+          <div className="flex items-center gap-2">
+            <span className={`text-xs px-2 py-0.5 rounded ${getRoleBadgeColor()}`}>
+              {role}
+            </span>
+          </div>
         </div>
       </SidebarHeader>
       <SidebarContent>
@@ -206,6 +242,10 @@ export function AppSidebar({ user }: AppSidebarProps) {
                 <DropdownMenuItem>
                   <Settings className="mr-2 h-4 w-4" />
                   Settings
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={handleSwitchOrganization}>
+                  <Building2 className="mr-2 h-4 w-4" />
+                  Switch Organization
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={handleSignOut}>

@@ -1,30 +1,40 @@
 import { createServiceClient } from '@/lib/supabase/server'
+import { getOrganizationContext } from '@/lib/auth/organization-context'
 import { ApiSettingsClient } from './client'
 import type { ApiSettings, ApiRequestLog, ConnectedDomain } from '@/types/database'
 
 export default async function ApiSettingsPage() {
+  const { organization } = await getOrganizationContext()
   const supabase = await createServiceClient()
 
-  // Get API settings
+  // Get API settings for this organization
   const { data: apiSettingsData } = await supabase
     .from('api_settings')
     .select('*')
+    .eq('organization_id', organization.id)
     .order('created_at', { ascending: false })
 
-  // Get recent API requests
-  const { data: recentRequestsData } = await supabase
-    .from('api_request_log')
-    .select('*')
-    .order('created_at', { ascending: false })
-    .limit(50)
+  // Get API key IDs for this organization
+  const apiKeyIds = (apiSettingsData || []).map((s: { id: string }) => s.id)
 
-  // Get connected domains
+  // Get recent API requests for this organization's API keys
+  const { data: recentRequestsData } = apiKeyIds.length > 0
+    ? await supabase
+        .from('api_request_log')
+        .select('*')
+        .in('api_key_id', apiKeyIds)
+        .order('created_at', { ascending: false })
+        .limit(50)
+    : { data: [] }
+
+  // Get connected domains for this organization
   const { data: connectedDomainsData } = await supabase
     .from('connected_domains')
     .select(`
       *,
       campaigns(id, name, display_id)
     `)
+    .eq('organization_id', organization.id)
     .order('created_at', { ascending: false })
 
   // Get API usage stats

@@ -63,7 +63,7 @@ const customerSchema = z.object({
  * - campaign_id: The campaign's display_id (e.g., 1, 2)
  * - product_id: The offer's Campaign Product Id / display_id (e.g., 1, 2, 3)
  */
-export const POST = withApiAuth(async (request: NextRequest) => {
+export const POST = withApiAuth(async (request: NextRequest, apiKeyId: string, organizationId: string) => {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const supabase = await createClient() as any
 
@@ -88,6 +88,7 @@ export const POST = withApiAuth(async (request: NextRequest) => {
       .from('campaigns')
       .select('id')
       .eq('display_id', data.campaign_id)
+      .eq('organization_id', organizationId)
       .single()
 
     if (campaignError || !campaign) {
@@ -116,15 +117,17 @@ export const POST = withApiAuth(async (request: NextRequest) => {
     offerUuid = offer.id
   }
 
-  // Check if customer exists by email
+  // Check if customer exists by email within this organization
   const { data: existingCustomer } = await supabase
     .from('customers')
     .select('id, customer_status')
     .eq('email', data.email)
+    .eq('organization_id', organizationId)
     .single()
 
   const customerData: Record<string, unknown> = {
     email: data.email,
+    organization_id: organizationId,
     first_name: data.first_name,
     last_name: data.last_name,
     phone: data.phone,
@@ -215,7 +218,7 @@ export const POST = withApiAuth(async (request: NextRequest) => {
  * - campaign_id: Filter by campaign display_id (numeric)
  * - product_id: Filter by offer display_id (numeric, requires campaign_id)
  */
-export const GET = withApiAuth(async (request: NextRequest) => {
+export const GET = withApiAuth(async (request: NextRequest, apiKeyId: string, organizationId: string) => {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const supabase = await createClient() as any
   const { searchParams } = new URL(request.url)
@@ -237,6 +240,7 @@ export const GET = withApiAuth(async (request: NextRequest) => {
         .from('campaigns')
         .select('id')
         .eq('display_id', campaignDisplayId)
+        .eq('organization_id', organizationId)
         .single()
       if (campaign) {
         campaignUuid = campaign.id
@@ -271,6 +275,7 @@ export const GET = withApiAuth(async (request: NextRequest) => {
       campaigns:source_campaign_id(display_id),
       offers:source_offer_id(display_id)
     `, { count: 'exact' })
+    .eq('organization_id', organizationId)
 
   // Apply filters
   if (email) {

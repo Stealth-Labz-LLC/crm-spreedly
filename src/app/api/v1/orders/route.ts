@@ -67,7 +67,7 @@ const orderSchema = z.object({
  * POST /api/v1/orders
  * Create a new order
  */
-export const POST = withApiAuth(async (request: NextRequest) => {
+export const POST = withApiAuth(async (request: NextRequest, apiKeyId: string, organizationId: string) => {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const supabase = await createClient() as any
 
@@ -85,7 +85,7 @@ export const POST = withApiAuth(async (request: NextRequest) => {
 
   const data = parsed.data
 
-  // Validate customer exists or get by email
+  // Validate customer exists or get by email within this organization
   let customerId = data.customer_id
 
   if (!customerId && data.customer_email) {
@@ -94,6 +94,7 @@ export const POST = withApiAuth(async (request: NextRequest) => {
       .from('customers')
       .select('id')
       .eq('email', data.customer_email)
+      .eq('organization_id', organizationId)
       .single()
 
     if (existingCustomer) {
@@ -107,6 +108,7 @@ export const POST = withApiAuth(async (request: NextRequest) => {
           customer_status: 'customer',
           source_campaign_id: data.campaign_id,
           source_offer_id: data.offer_id,
+          organization_id: organizationId,
         })
         .select('id')
         .single()
@@ -204,6 +206,7 @@ export const POST = withApiAuth(async (request: NextRequest) => {
       fulfillment_status: data.fulfillment_status ?? 'unfulfilled',
       notes: data.notes,
       metadata: data.metadata,
+      organization_id: organizationId,
     })
     .select('id, order_number, display_id')
     .single()
@@ -268,7 +271,7 @@ export const POST = withApiAuth(async (request: NextRequest) => {
  * GET /api/v1/orders
  * List orders with optional filters
  */
-export const GET = withApiAuth(async (request: NextRequest) => {
+export const GET = withApiAuth(async (request: NextRequest, apiKeyId: string, organizationId: string) => {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const supabase = await createClient() as any
   const { searchParams } = new URL(request.url)
@@ -293,6 +296,7 @@ export const GET = withApiAuth(async (request: NextRequest) => {
       created_at, updated_at,
       customers!inner(id, email, first_name, last_name)
     `, { count: 'exact' })
+    .eq('organization_id', organizationId)
 
   // Apply filters
   if (customer_id) {

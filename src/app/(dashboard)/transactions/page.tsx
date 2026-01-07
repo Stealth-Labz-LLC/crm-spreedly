@@ -1,5 +1,6 @@
 import Link from 'next/link'
 import { createServiceClient } from '@/lib/supabase/server'
+import { getOrganizationContext } from '@/lib/auth/organization-context'
 import { Card, CardContent, CardHeader } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -25,7 +26,16 @@ export default async function TransactionsPage({ searchParams }: PageProps) {
   const page = parseInt(params.page || '1')
   const pageSize = 20
 
+  const { organization } = await getOrganizationContext()
   const supabase = await createServiceClient()
+
+  // Get order IDs for this organization to filter transactions
+  const { data: orgOrders } = await supabase
+    .from('orders')
+    .select('id')
+    .eq('organization_id', organization.id)
+
+  const orderIds = (orgOrders || []).map((o: { id: string }) => o.id)
 
   let query = supabase
     .from('transactions')
@@ -35,6 +45,7 @@ export default async function TransactionsPage({ searchParams }: PageProps) {
       customers (email, first_name, last_name),
       gateways (name)
     `, { count: 'exact' })
+    .in('order_id', orderIds)
     .order('created_at', { ascending: false })
     .range((page - 1) * pageSize, page * pageSize - 1)
 
@@ -58,10 +69,11 @@ export default async function TransactionsPage({ searchParams }: PageProps) {
 
   const totalPages = Math.ceil((count || 0) / pageSize)
 
-  // Calculate summary stats
+  // Calculate summary stats for this organization
   const { data: statsData } = await supabase
     .from('transactions')
     .select('status, amount')
+    .in('order_id', orderIds)
 
   const stats = (statsData || []) as Pick<Transaction, 'status' | 'amount'>[]
 

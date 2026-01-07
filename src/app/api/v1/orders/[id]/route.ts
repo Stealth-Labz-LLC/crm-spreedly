@@ -6,7 +6,7 @@ import { withApiAuth, apiSuccess, apiError } from '@/lib/api-auth'
  * GET /api/v1/orders/:id
  * Get a specific order by ID
  */
-export const GET = withApiAuth(async (request: NextRequest) => {
+export const GET = withApiAuth(async (request: NextRequest, apiKeyId: string, organizationId: string) => {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const supabase = await createClient() as any
   const url = new URL(request.url)
@@ -25,6 +25,7 @@ export const GET = withApiAuth(async (request: NextRequest) => {
       campaigns(id, name, display_id),
       campaign_offers(id, name, display_id, offer_type)
     `)
+    .eq('organization_id', organizationId)
 
   const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id)
 

@@ -61,6 +61,47 @@ export async function updateSession(request: NextRequest) {
     return NextResponse.redirect(url)
   }
 
+  // Check organization context for authenticated users on protected routes
+  if (user && isProtectedRoute && request.nextUrl.pathname !== '/select-organization') {
+    try {
+      // Get user profile to check for current_organization_id
+      const { data: profile } = await supabase
+        .from('user_profiles')
+        .select('current_organization_id')
+        .eq('id', user.id)
+        .single()
+
+      // If no profile or no organization selected, redirect to organization selector
+      if (!profile || !profile.current_organization_id) {
+        const url = request.nextUrl.clone()
+        url.pathname = '/select-organization'
+        return NextResponse.redirect(url)
+      }
+
+      // Verify user is an active member of the organization
+      const { data: membership } = await supabase
+        .from('organization_members')
+        .select('status')
+        .eq('user_id', user.id)
+        .eq('organization_id', profile.current_organization_id)
+        .eq('status', 'active')
+        .single()
+
+      if (!membership) {
+        // User is not a member or membership is not active
+        const url = request.nextUrl.clone()
+        url.pathname = '/select-organization'
+        return NextResponse.redirect(url)
+      }
+    } catch (error) {
+      // If there's an error checking organization, redirect to selector
+      console.error('Organization check error in middleware:', error)
+      const url = request.nextUrl.clone()
+      url.pathname = '/select-organization'
+      return NextResponse.redirect(url)
+    }
+  }
+
   // Redirect logged-in users away from auth pages
   if (
     user &&

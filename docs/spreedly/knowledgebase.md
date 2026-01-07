@@ -12,14 +12,16 @@
 │                         FRONTEND LAYER                                  │
 │  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐                 │
 │  │ Admin Portal │  │ Customer     │  │ Checkout     │                 │
-│  │ (Next.js)    │  │ Portal       │  │ Pages/Funnels│                 │
+│  │ (React)      │  │ Portal       │  │ Pages/Funnels│                 │
+│  │              │  │ (React)      │  │ (React)      │                 │
 │  └──────────────┘  └──────────────┘  └──────────────┘                 │
 └────────────────────────────────────────────────────────────────────────┘
                                 │
                                 ▼
 ┌────────────────────────────────────────────────────────────────────────┐
-│                         API GATEWAY LAYER                               │
-│              Laravel API (REST + Webhooks)                              │
+│                         BACKEND LAYER                                   │
+│         Next.js App Router (API Routes + Server Actions)                │
+│              TypeScript + Supabase PostgreSQL                           │
 └────────────────────────────────────────────────────────────────────────┘
                                 │
         ┌───────────────────────┼───────────────────────┐
@@ -219,6 +221,8 @@ trialing → active → past_due → cancelled
 
 ## Database Design Overview
 
+**Platform:** Supabase PostgreSQL with Row Level Security (RLS)
+
 ```
 CUSTOMERS                    PAYMENTS                    COMMERCE
 ─────────                    ────────                    ────────
@@ -234,6 +238,10 @@ subscription_periods        funnels                      affiliate_links
 subscription_invoices       funnel_steps                 commissions
 dunning_attempts            offers                       payouts
                             upsells
+
+SYSTEM TABLES
+─────────────
+webhook_events              audit_logs                  users (Supabase Auth)
 ```
 
 ---
@@ -281,22 +289,24 @@ Your Action → Payment Service → Spreedly API → Gateway → Response
 ## Performance Considerations
 
 ### Caching Strategy
-- Cache gateway routing rules
-- Cache product catalog data
-- Use Redis for session management
-- Implement dashboard metric caching
+- Cache gateway routing rules in Next.js Edge Config
+- Cache product catalog data using Next.js ISR (Incremental Static Regeneration)
+- Use Vercel KV (Redis) for session management
+- Implement dashboard metric caching with React Query
 
 ### Database Optimization
-- Index foreign keys and frequently queried fields
-- Use database views for complex reports
-- Implement read replicas for analytics
-- Archive old transaction data
+- Index foreign keys and frequently queried fields in Supabase
+- Use Supabase Views for complex reports
+- Implement Supabase Read Replicas for analytics
+- Archive old transaction data using Supabase scheduled functions
+- Use Supabase Connection Pooling (PgBouncer)
 
-### Queue Management
-- Process webhooks asynchronously
-- Queue subscription billing jobs
-- Queue report generation
+### API Route Optimization
+- Process webhooks asynchronously using Vercel Edge Functions
+- Use Vercel Cron Jobs for subscription billing
+- Queue report generation using Supabase Edge Functions
 - Implement retry logic with exponential backoff
+- Use Next.js streaming and React Suspense for better UX
 
 ---
 
@@ -305,9 +315,10 @@ Your Action → Payment Service → Spreedly API → Gateway → Response
 ### Key Metrics to Monitor
 - Payment gateway uptime
 - Transaction success rates
-- API response times
-- Queue processing delays
+- Next.js API route response times
+- Vercel Edge Function execution times
 - Failed payment recovery rates
+- Supabase query performance
 
 ### Alerts to Configure
 - Gateway downtime or high decline rates
@@ -315,3 +326,12 @@ Your Action → Payment Service → Spreedly API → Gateway → Response
 - Webhook processing errors
 - Volume cap approaching for gateways
 - High chargeback ratios
+- Vercel function timeout errors
+- Supabase connection pool exhaustion
+
+### Monitoring Tools
+- Vercel Analytics for frontend performance
+- Vercel Logs for API route monitoring
+- Supabase Dashboard for database metrics
+- Sentry or LogRocket for error tracking
+- Spreedly Dashboard for payment metrics
