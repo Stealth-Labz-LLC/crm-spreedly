@@ -9,6 +9,176 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      organizations: {
+        Row: {
+          id: string
+          display_id: number
+          name: string
+          slug: string
+          plan: 'starter' | 'professional' | 'enterprise' | 'custom'
+          status: 'trial' | 'active' | 'suspended' | 'cancelled'
+          trial_ends_at: string | null
+          max_users: number
+          max_api_calls_per_month: number
+          logo_url: string | null
+          primary_color: string | null
+          timezone: string
+          currency: string
+          metadata: Json
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          display_id?: number
+          name: string
+          slug: string
+          plan?: 'starter' | 'professional' | 'enterprise' | 'custom'
+          status?: 'trial' | 'active' | 'suspended' | 'cancelled'
+          trial_ends_at?: string | null
+          max_users?: number
+          max_api_calls_per_month?: number
+          logo_url?: string | null
+          primary_color?: string | null
+          timezone?: string
+          currency?: string
+          metadata?: Json
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          display_id?: number
+          name?: string
+          slug?: string
+          plan?: 'starter' | 'professional' | 'enterprise' | 'custom'
+          status?: 'trial' | 'active' | 'suspended' | 'cancelled'
+          trial_ends_at?: string | null
+          max_users?: number
+          max_api_calls_per_month?: number
+          logo_url?: string | null
+          primary_color?: string | null
+          timezone?: string
+          currency?: string
+          metadata?: Json
+          created_at?: string
+          updated_at?: string
+        }
+      }
+      user_profiles: {
+        Row: {
+          id: string
+          email: string
+          first_name: string | null
+          last_name: string | null
+          avatar_url: string | null
+          current_organization_id: string | null
+          metadata: Json
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id: string
+          email: string
+          first_name?: string | null
+          last_name?: string | null
+          avatar_url?: string | null
+          current_organization_id?: string | null
+          metadata?: Json
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          email?: string
+          first_name?: string | null
+          last_name?: string | null
+          avatar_url?: string | null
+          current_organization_id?: string | null
+          metadata?: Json
+          created_at?: string
+          updated_at?: string
+        }
+      }
+      organization_members: {
+        Row: {
+          id: string
+          organization_id: string
+          user_id: string
+          role: 'owner' | 'admin' | 'member'
+          status: 'invited' | 'active' | 'suspended'
+          permissions: Json
+          invited_by: string | null
+          invited_at: string | null
+          joined_at: string | null
+          metadata: Json
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          organization_id: string
+          user_id: string
+          role?: 'owner' | 'admin' | 'member'
+          status?: 'invited' | 'active' | 'suspended'
+          permissions?: Json
+          invited_by?: string | null
+          invited_at?: string | null
+          joined_at?: string | null
+          metadata?: Json
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          organization_id?: string
+          user_id?: string
+          role?: 'owner' | 'admin' | 'member'
+          status?: 'invited' | 'active' | 'suspended'
+          permissions?: Json
+          invited_by?: string | null
+          invited_at?: string | null
+          joined_at?: string | null
+          metadata?: Json
+          created_at?: string
+          updated_at?: string
+        }
+      }
+      organization_invitations: {
+        Row: {
+          id: string
+          organization_id: string
+          email: string
+          role: 'admin' | 'member'
+          invited_by: string
+          token: string
+          expires_at: string
+          accepted_at: string | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          organization_id: string
+          email: string
+          role?: 'admin' | 'member'
+          invited_by: string
+          token?: string
+          expires_at?: string
+          accepted_at?: string | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          organization_id?: string
+          email?: string
+          role?: 'admin' | 'member'
+          invited_by?: string
+          token?: string
+          expires_at?: string
+          accepted_at?: string | null
+          created_at?: string
+        }
+      }
       customers: {
         Row: {
           id: string
@@ -1881,7 +2051,23 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      create_organization_with_owner: {
+        Args: {
+          p_user_id: string
+          p_user_email: string
+          p_org_name: string
+          p_org_slug: string
+          p_plan?: string
+        }
+        Returns: string
+      }
+      switch_current_organization: {
+        Args: {
+          p_user_id: string
+          p_org_id: string
+        }
+        Returns: boolean
+      }
     }
     Enums: {
       [_ in never]: never

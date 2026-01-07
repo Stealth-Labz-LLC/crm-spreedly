@@ -68,7 +68,8 @@ export default function RegisterPage() {
         .replace(/[^a-z0-9]+/g, '-')
         .replace(/^-+|-+$/g, '')
 
-      const { data: orgData, error: orgError } = await supabase
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data: orgData, error: orgError } = await (supabase as any)
         .rpc('create_organization_with_owner', {
           p_user_id: authData.user.id,
           p_user_email: authData.user.email!,

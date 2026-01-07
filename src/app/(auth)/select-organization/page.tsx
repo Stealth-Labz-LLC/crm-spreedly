@@ -97,7 +97,8 @@ export default function SelectOrganizationPage() {
       }
 
       // Update user's current organization
-      const { error: updateError } = await supabase
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { error: updateError } = await (supabase as any)
         .from('user_profiles')
         .update({
           current_organization_id: organizationId,

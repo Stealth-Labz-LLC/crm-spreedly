@@ -101,7 +101,8 @@ export async function getOrganizationContext(): Promise<OrganizationContext> {
   }
 
   // Get user profile with current organization
-  const { data: profile, error: profileError } = await supabase
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { data: profile, error: profileError } = await (supabase as any)
     .from('user_profiles')
     .select('*')
     .eq('id', user.id)
@@ -118,7 +119,8 @@ export async function getOrganizationContext(): Promise<OrganizationContext> {
   }
 
   // Get organization details
-  const { data: organization, error: orgError } = await supabase
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { data: organization, error: orgError } = await (supabase as any)
     .from('organizations')
     .select('*')
     .eq('id', profile.current_organization_id)
@@ -126,7 +128,8 @@ export async function getOrganizationContext(): Promise<OrganizationContext> {
 
   if (orgError || !organization) {
     // Organization doesn't exist - clear current org and redirect
-    await supabase
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    await (supabase as any)
       .from('user_profiles')
       .update({ current_organization_id: null })
       .eq('id', user.id)
@@ -135,7 +138,8 @@ export async function getOrganizationContext(): Promise<OrganizationContext> {
   }
 
   // Verify active membership in the organization
-  const { data: membership, error: memberError } = await supabase
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { data: membership, error: memberError } = await (supabase as any)
     .from('organization_members')
     .select('*')
     .eq('user_id', user.id)
@@ -145,7 +149,8 @@ export async function getOrganizationContext(): Promise<OrganizationContext> {
 
   if (memberError || !membership) {
     // Not a member or membership is not active - clear and redirect
-    await supabase
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    await (supabase as any)
       .from('user_profiles')
       .update({ current_organization_id: null })
       .eq('id', user.id)
@@ -185,7 +190,8 @@ export async function getOrganizationContextOptional(): Promise<OrganizationCont
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return null
 
-    const { data: profile } = await supabase
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { data: profile } = await (supabase as any)
       .from('user_profiles')
       .select('*')
       .eq('id', user.id)
@@ -193,7 +199,8 @@ export async function getOrganizationContextOptional(): Promise<OrganizationCont
 
     if (!profile?.current_organization_id) return null
 
-    const { data: organization } = await supabase
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { data: organization } = await (supabase as any)
       .from('organizations')
       .select('*')
       .eq('id', profile.current_organization_id)
@@ -201,7 +208,8 @@ export async function getOrganizationContextOptional(): Promise<OrganizationCont
 
     if (!organization) return null
 
-    const { data: membership } = await supabase
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { data: membership } = await (supabase as any)
       .from('organization_members')
       .select('*')
       .eq('user_id', user.id)
@@ -243,7 +251,8 @@ export async function getUserOrganizations() {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return []
 
-  const { data: memberships, error } = await supabase
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { data: memberships, error } = await (supabase as any)
     .from('organization_members')
     .select(`
       *,
@@ -255,7 +264,8 @@ export async function getUserOrganizations() {
 
   if (error || !memberships) return []
 
-  return memberships.map(m => ({
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  return memberships.map((m: any) => ({
     organization: m.organization as Organization,
     membership: {
       id: m.id,
@@ -326,7 +336,8 @@ export async function switchOrganization(organizationId: string): Promise<boolea
   if (!user) return false
 
   // Verify user is a member of the organization
-  const { data: membership } = await supabase
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { data: membership } = await (supabase as any)
     .from('organization_members')
     .select('id')
     .eq('user_id', user.id)
@@ -337,7 +348,8 @@ export async function switchOrganization(organizationId: string): Promise<boolea
   if (!membership) return false
 
   // Update current organization
-  const { error } = await supabase
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { error } = await (supabase as any)
     .from('user_profiles')
     .update({
       current_organization_id: organizationId,
