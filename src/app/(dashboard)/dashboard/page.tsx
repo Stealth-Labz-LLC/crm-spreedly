@@ -20,7 +20,7 @@ async function getDashboardStats(organizationId: string) {
     supabase.from('orders').select('*', { count: 'exact', head: true }).eq('organization_id', organizationId),
     supabase.from('gateways').select('*', { count: 'exact', head: true }).eq('organization_id', organizationId),
     supabase.from('orders').select('*').eq('organization_id', organizationId).order('created_at', { ascending: false }).limit(5),
-    supabase.from('transactions').select('amount, status').eq('status', 'succeeded'),
+    supabase.from('transactions').select('id, amount, status, orders!inner(id, organization_id)').eq('status', 'succeeded').eq('orders.organization_id', organizationId),
   ])
 
   const recentOrders = (recentOrdersData || []) as Order[]
